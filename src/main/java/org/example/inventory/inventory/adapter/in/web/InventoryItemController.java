@@ -2,9 +2,7 @@ package org.example.inventory.inventory.adapter.in.web;
 
 import org.example.inventory.inventory.application.command.AdjustStockCommand;
 import org.example.inventory.inventory.application.command.CreateInventoryItemCommand;
-import org.example.inventory.inventory.application.port.in.AdjustStockUseCase;
-import org.example.inventory.inventory.application.port.in.CreateInventoryItemUseCase;
-import org.example.inventory.inventory.application.port.in.GetInventoryItemUseCase;
+import org.example.inventory.inventory.application.mediator.Mediator;
 import org.example.inventory.inventory.application.query.GetInventoryItemQuery;
 import org.example.inventory.inventory.application.query.InventoryItemView;
 import org.springframework.http.ResponseEntity;
@@ -23,23 +21,15 @@ import java.util.UUID;
 @RequestMapping("/api/inventory/items")
 public class InventoryItemController {
 
-    private final CreateInventoryItemUseCase createInventoryItem;
-    private final AdjustStockUseCase adjustStock;
-    private final GetInventoryItemUseCase getInventoryItem;
+    private final Mediator mediator;
 
-    public InventoryItemController(
-            CreateInventoryItemUseCase createInventoryItem,
-            AdjustStockUseCase adjustStock,
-            GetInventoryItemUseCase getInventoryItem
-    ) {
-        this.createInventoryItem = createInventoryItem;
-        this.adjustStock = adjustStock;
-        this.getInventoryItem = getInventoryItem;
+    public InventoryItemController(Mediator mediator) {
+        this.mediator = mediator;
     }
 
     @PostMapping
     public ResponseEntity<CreateInventoryItemResponse> create(@RequestBody CreateInventoryItemRequest request) {
-        UUID id = createInventoryItem.handle(new CreateInventoryItemCommand(
+        UUID id = mediator.send(new CreateInventoryItemCommand(
                 request.sku(),
                 request.name(),
                 request.initialQuantity()
@@ -55,13 +45,13 @@ public class InventoryItemController {
             @PathVariable UUID id,
             @RequestBody AdjustStockRequest request
     ) {
-        adjustStock.handle(new AdjustStockCommand(id, request.quantityChange()));
+        mediator.send(new AdjustStockCommand(id, request.quantityChange()));
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{id}")
     public InventoryItemView getById(@PathVariable UUID id) {
-        return getInventoryItem.handle(new GetInventoryItemQuery(id));
+        return mediator.send(new GetInventoryItemQuery(id));
     }
 
     public record CreateInventoryItemRequest(String sku, String name, int initialQuantity) {

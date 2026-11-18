@@ -1,7 +1,7 @@
 package org.example.inventory.inventory.application.service;
 
 import org.example.inventory.inventory.application.command.AdjustStockCommand;
-import org.example.inventory.inventory.application.port.in.AdjustStockUseCase;
+import org.example.inventory.inventory.application.mediator.RequestHandler;
 import org.example.inventory.inventory.application.port.out.InventoryItemCommandRepository;
 import org.example.inventory.inventory.domain.exception.InventoryItemNotFoundException;
 import org.example.inventory.inventory.domain.model.InventoryItem;
@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-public class AdjustStockService implements AdjustStockUseCase {
+public class AdjustStockService implements RequestHandler<Void, AdjustStockCommand> {
 
     private final InventoryItemCommandRepository repository;
 
@@ -18,12 +18,18 @@ public class AdjustStockService implements AdjustStockUseCase {
     }
 
     @Override
+    public Class<AdjustStockCommand> requestType() {
+        return AdjustStockCommand.class;
+    }
+
+    @Override
     @Transactional
-    public void handle(AdjustStockCommand command) {
+    public Void handle(AdjustStockCommand command) {
         InventoryItem item = repository.findById(command.itemId())
                 .orElseThrow(() -> new InventoryItemNotFoundException(command.itemId()));
 
         item.adjustStock(command.quantityChange());
         repository.save(item);
+        return null;
     }
 }
